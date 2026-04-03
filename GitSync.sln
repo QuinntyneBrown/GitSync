@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitSync", "GitSync.csproj", "{601D99E1-2B8F-E05C-B8E6-E62C2CEB71FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitSync", "src\GitSync\GitSync.csproj", "{601D99E1-2B8F-E05C-B8E6-E62C2CEB71FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

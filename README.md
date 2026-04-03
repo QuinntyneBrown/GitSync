@@ -257,7 +257,7 @@ cd GitSync
 dotnet build
 
 # Run locally
-dotnet run -- --help
+dotnet run --project src/GitSync -- --help
 
 # Pack as NuGet tool
 dotnet pack -c Release -o ./artifacts
@@ -272,24 +272,28 @@ dotnet tool install -g GitSync --add-source ./artifacts
 
 ```
 GitSync/
-├── Commands/
-│   └── SyncCommand.cs              # RootCommand — all CLI options and handler
-├── Services/
-│   ├── ISyncLoopOrchestrator.cs    # Loop engine interface
-│   ├── SyncLoopOrchestrator.cs     # Loop implementation
-│   ├── IGitService.cs              # Git operations interface
-│   ├── GitService.cs               # Git operations implementation
-│   ├── IGitProcessRunner.cs        # Subprocess execution interface
-│   └── GitProcessRunner.cs         # Subprocess implementation (timeout + injection safety)
-├── Models/
-│   ├── SyncOptions.cs              # Immutable options DTO
-│   ├── GitCommandResult.cs         # Subprocess result record
-│   ├── GitCommandOptions.cs        # Subprocess input record
-│   └── IterationOutcome.cs         # Per-iteration outcome enum
-├── Infrastructure/
-│   └── ServiceCollectionExtensions.cs  # DI registration
-├── Program.cs                      # Entry point
-└── GitSync.csproj                  # PackAsTool, NuGet metadata
+├── GitSync.sln
+├── docs/                           # Requirements and detailed design docs
+└── src/
+    └── GitSync/
+        ├── GitSync.csproj              # PackAsTool, NuGet metadata
+        ├── Program.cs                  # Entry point
+        ├── Commands/
+        │   └── SyncCommand.cs          # RootCommand — all CLI options and handler
+        ├── Services/
+        │   ├── ISyncLoopOrchestrator.cs    # Loop engine interface
+        │   ├── SyncLoopOrchestrator.cs     # Loop implementation
+        │   ├── IGitService.cs              # Git operations interface
+        │   ├── GitService.cs               # Git operations implementation
+        │   ├── IGitProcessRunner.cs        # Subprocess execution interface
+        │   └── GitProcessRunner.cs         # Subprocess implementation (timeout + injection safety)
+        ├── Models/
+        │   ├── SyncOptions.cs              # Immutable options DTO
+        │   ├── GitCommandResult.cs         # Subprocess result record
+        │   ├── GitCommandOptions.cs        # Subprocess input record
+        │   └── IterationOutcome.cs         # Per-iteration outcome enum
+        └── Infrastructure/
+            └── ServiceCollectionExtensions.cs  # DI registration
 ```
 
 Each `System.CommandLine` `Command` subclass lives in its own file under `Commands/` — new commands can be added without touching existing ones.
