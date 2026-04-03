@@ -32,7 +32,7 @@ mkdir "%ARTIFACTS_DIR%"
 :: ---------------------------------------------------------------------------
 echo [2/4] Building (Release)...
 echo.
-dotnet build "%REPO_ROOT%\GitSync.csproj" -c Release --nologo
+dotnet build "%REPO_ROOT%\src\GitSync\GitSync.csproj" -c Release --nologo
 if %ERRORLEVEL% neq 0 (
     echo.
     echo [ERROR] Build failed. Fix compilation errors before reinstalling.
@@ -45,7 +45,7 @@ if %ERRORLEVEL% neq 0 (
 echo.
 echo [3/4] Packing NuGet tool...
 echo.
-dotnet pack "%REPO_ROOT%\GitSync.csproj" -c Release -o "%ARTIFACTS_DIR%" --no-build --nologo
+dotnet pack "%REPO_ROOT%\src\GitSync\GitSync.csproj" -c Release -o "%ARTIFACTS_DIR%" --no-build --nologo
 if %ERRORLEVEL% neq 0 (
     echo.
     echo [ERROR] Pack failed.
