@@ -1,0 +1,72 @@
+@startuml sequence_git_workflow
+!theme plain
+skinparam sequenceMessageAlign center
+
+title GitSync — Full Git Workflow per Iteration
+
+participant "SyncLoop\nOrchestrator" as ORCH
+participant "GitService" as GIT
+participant "GitProcess\nRunner" as RUNNER
+participant "git (process)" as GIT_EXE
+participant "Remote\nOrigin" as REMOTE
+
+== Pull ==
+ORCH -> GIT : PullAsync()
+GIT -> RUNNER : RunAsync(["pull"])
+RUNNER -> GIT_EXE : Process.Start()\ngit pull
+GIT_EXE -> REMOTE : fetch + merge
+REMOTE --> GIT_EXE : objects
+GIT_EXE --> RUNNER : exit 0, stdout
+RUNNER --> GIT : GitCommandResult { ExitCode=0 }
+GIT --> ORCH : GitCommandResult (success)
+
+== Change Detection ==
+ORCH -> GIT : DetectChangesAsync()
+GIT -> RUNNER : RunAsync(["status", "--porcelain"])
+RUNNER -> GIT_EXE : git status --porcelain
+GIT_EXE --> RUNNER : exit 0, stdout (non-empty = changes)
+RUNNER --> GIT : GitCommandResult
+GIT --> ORCH : true (has changes)
+
+== Stage ==
+ORCH -> GIT : StageAsync()
+GIT -> RUNNER : RunAsync(["add", "-A"])
+RUNNER -> GIT_EXE : git add -A
+GIT_EXE --> RUNNER : exit 0
+RUNNER --> GIT : GitCommandResult { ExitCode=0 }
+GIT --> ORCH : GitCommandResult
+
+== Commit ==
+ORCH -> GIT : CommitAsync("Auto-sync: 2026-04-03T07:00:00Z")
+GIT -> RUNNER : RunAsync(["commit", "-m",\n"Auto-sync: 2026-04-03T07:00:00Z"])
+note right of RUNNER
+  Uses ArgumentList — message
+  passed as literal arg, no shell.
+end note
+RUNNER -> GIT_EXE : git commit -m "..."
+GIT_EXE --> RUNNER : exit 0
+RUNNER --> GIT : GitCommandResult { ExitCode=0 }
+GIT --> ORCH : GitCommandResult
+
+== Push ==
+ORCH -> GIT : PushAsync()
+GIT -> RUNNER : RunAsync(["push"])
+RUNNER -> GIT_EXE : git push
+GIT_EXE -> REMOTE : push objects
+alt push succeeds
+    REMOTE --> GIT_EXE : 200 OK
+    GIT_EXE --> RUNNER : exit 0
+    RUNNER --> GIT : GitCommandResult { ExitCode=0 }
+else no upstream configured
+    GIT_EXE --> RUNNER : exit 128 (no upstream)
+    RUNNER --> GIT : GitCommandResult { ExitCode=128 }
+    GIT -> RUNNER : RunAsync(["push", "origin", "HEAD"])
+    RUNNER -> GIT_EXE : git push origin HEAD
+    GIT_EXE -> REMOTE : push objects
+    REMOTE --> GIT_EXE : 200 OK
+    GIT_EXE --> RUNNER : exit 0
+    RUNNER --> GIT : GitCommandResult { ExitCode=0 }
+end
+GIT --> ORCH : GitCommandResult (success)
+
+@enduml

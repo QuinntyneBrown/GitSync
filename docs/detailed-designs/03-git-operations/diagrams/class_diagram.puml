@@ -1,0 +1,76 @@
+@startuml class_diagram
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+
+title GitSync — Git Operations Class Model
+
+interface IGitService {
+    +ValidateRepositoryAsync(path: DirectoryInfo) : Task<bool>
+    +FindGitExecutableAsync() : Task<string?>
+    +PullAsync() : Task<GitCommandResult>
+    +DetectChangesAsync() : Task<bool>
+    +StageAsync() : Task<GitCommandResult>
+    +CommitAsync(message: string) : Task<GitCommandResult>
+    +PushAsync() : Task<GitCommandResult>
+}
+
+class GitService {
+    -_runner : IGitProcessRunner
+    -_options : SyncOptions
+    -_logger : ILogger<GitService>
+    -_gitExePath : string
+    +GitService(runner, options, logger)
+    +ValidateRepositoryAsync(path) : Task<bool>
+    +FindGitExecutableAsync() : Task<string?>
+    +PullAsync() : Task<GitCommandResult>
+    +DetectChangesAsync() : Task<bool>
+    +StageAsync() : Task<GitCommandResult>
+    +CommitAsync(message: string) : Task<GitCommandResult>
+    +PushAsync() : Task<GitCommandResult>
+    -BuildOptions(args: string[]) : GitCommandOptions
+}
+
+interface IGitProcessRunner {
+    +RunAsync(opts: GitCommandOptions, ct: CancellationToken) : Task<GitCommandResult>
+}
+
+class GitProcessRunner {
+    -_logger : ILogger<GitProcessRunner>
+    +GitProcessRunner(logger)
+    +RunAsync(opts: GitCommandOptions, ct: CancellationToken) : Task<GitCommandResult>
+}
+
+class GitCommandResult <<record>> {
+    +ExitCode : int
+    +Stdout : string
+    +Stderr : string
+    +TimedOut : bool
+    +Succeeded : bool
+}
+
+class GitCommandOptions <<record>> {
+    +GitExecutablePath : string
+    +Arguments : IReadOnlyList<string>
+    +WorkingDirectory : string
+    +Timeout : TimeSpan
+}
+
+GitService ..|> IGitService
+GitProcessRunner ..|> IGitProcessRunner
+GitService --> IGitProcessRunner : delegates to
+GitService ..> GitCommandOptions : creates
+GitProcessRunner ..> GitCommandResult : returns
+GitService ..> GitCommandResult : inspects
+
+note right of GitProcessRunner
+  ProcessStartInfo:
+  - UseShellExecute = false
+  - ArgumentList (not Arguments)
+  - RedirectStandardOutput = true
+  - RedirectStandardError = true
+  Process killed on timeout via
+  Kill(entireProcessTree: true)
+end note
+
+@enduml

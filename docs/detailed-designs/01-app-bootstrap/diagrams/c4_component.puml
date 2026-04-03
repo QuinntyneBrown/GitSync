@@ -1,0 +1,22 @@
+@startuml c4_component
+!theme plain
+!include <C4/C4_Component>
+
+title GitSync — CLI Host Components
+
+Container_Boundary(cli, "CLI Host") {
+    Component(prog, "Program", "C# static class", "Entry point.\nCreates SyncCommand and\ncalls InvokeAsync(args).")
+
+    Component(cmd, "SyncCommand", "System.CommandLine\nRootCommand subclass", "Defines all CLI options\n(--path, --interval, --duration,\n--end-time, --message,\n--log-level, --git-timeout).\nWires SetHandler.")
+
+    Component(opts, "SyncOptions", "C# record / POCO", "Immutable DTO carrying\nall resolved option values\nto downstream services.")
+
+    Component(ext, "ServiceCollectionExtensions", "C# static class", "IServiceCollection extension\nmethods that register\nall application services\nagainst their interfaces.")
+}
+
+Rel(prog, cmd, "Constructs & invokes")
+Rel(cmd, opts, "Creates from parsed values")
+Rel(cmd, ext, "Calls to register services")
+Rel(ext, cmd, "Returns built IServiceProvider")
+
+@enduml

@@ -1,0 +1,24 @@
+@startuml c4_container
+!theme plain
+!include <C4/C4_Container>
+
+title GitSync Git Operations — Container Diagram
+
+System_Boundary(sb, "GitSync .NET Global Tool") {
+    Container(loop, "Sync Loop Engine", ".NET 8", "Calls IGitService per iteration")
+
+    Container(gitsvc, "Git Operations Service", ".NET 8 / System.Diagnostics", "Implements IGitService.\nCoordinates high-level git operations.\nDelegates subprocess execution\nto IGitProcessRunner.")
+
+    Container(runner, "Git Process Runner", ".NET 8 / System.Diagnostics.Process", "Low-level subprocess executor.\nSets UseShellExecute=false.\nUses ArgumentList (not Arguments).\nEnforces per-command timeout.\nKills process tree on timeout.")
+}
+
+System_Ext(gitexe, "git Executable", "Local binary on PATH")
+System_Ext(remote, "Remote Repository", "origin")
+
+Rel(loop, gitsvc, "pull / detect / stage\n/ commit / push", "IGitService async calls")
+Rel(gitsvc, runner, "RunAsync(args, opts)", "IGitProcessRunner")
+Rel(runner, gitexe, "Process.Start()", "OS process")
+Rel(gitexe, remote, "pull / push", "HTTPS / SSH")
+Rel(gitexe, runner, "stdout, stderr, exit code", "redirected streams")
+
+@enduml

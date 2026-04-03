@@ -1,0 +1,19 @@
+@startuml c4_context
+!theme plain
+!include <C4/C4_Context>
+
+title GitSync — System Context
+
+Person(dev, "Developer / DevOps Engineer", "Runs GitSync to keep a local\ngit repo in sync with origin")
+
+System(gitsync, "GitSync CLI", "A .NET global tool that polls a\ngit repository, auto-committing\nand pushing local changes on a\nconfigurable schedule")
+
+System_Ext(gitexe, "git Executable", "Locally installed git binary\nresolved from system PATH")
+
+System_Ext(remote, "Remote Git Repository", "GitHub, GitLab, Azure DevOps,\nor any git remote (origin)")
+
+Rel(dev, gitsync, "Installs & invokes", "dotnet tool / shell")
+Rel(gitsync, gitexe, "Spawns subprocesses", "Process API")
+Rel(gitexe, remote, "pull / push", "HTTPS or SSH")
+
+@enduml

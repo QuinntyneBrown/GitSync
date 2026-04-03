@@ -1,0 +1,50 @@
+@startuml sequence_loop_iteration
+!theme plain
+skinparam sequenceMessageAlign center
+
+title GitSync — Sync Loop: Normal Iteration Cycle
+
+participant "SyncLoop\nOrchestrator" as ORCH
+participant "IGitService" as GIT
+participant "ILogger" as LOG
+
+ORCH -> ORCH : Calculate endTime
+ORCH -> LOG : Info "GitSync started\npath={path} interval={interval}\nending at {endTime}"
+
+loop while UtcNow < endTime AND not cancelled
+    ORCH -> LOG : Debug "Iteration {n} starting"
+
+    ORCH -> GIT : PullAsync()
+    alt pull failed (non-zero exit)
+        GIT --> ORCH : GitCommandResult { ExitCode≠0 }
+        ORCH -> LOG : Warning "git pull failed: {stderr}"
+        ORCH -> ORCH : goto delay
+    else pull succeeded
+        GIT --> ORCH : GitCommandResult { ExitCode=0 }
+        ORCH -> LOG : Debug "git pull stdout: {stdout}"
+    end
+
+    ORCH -> GIT : DetectChangesAsync()
+    alt no changes (empty porcelain output)
+        GIT --> ORCH : false
+        ORCH -> LOG : Debug "No changes — skipping commit"
+        ORCH -> ORCH : goto delay
+    else changes detected
+        GIT --> ORCH : true
+    end
+
+    ORCH -> GIT : StageAsync()
+    GIT --> ORCH : GitCommandResult
+    ORCH -> ORCH : ResolveMessage(template)
+    ORCH -> GIT : CommitAsync(resolvedMessage)
+    GIT --> ORCH : GitCommandResult
+    ORCH -> GIT : PushAsync()
+    GIT --> ORCH : GitCommandResult
+    ORCH -> LOG : Info "Iteration {n} complete — pulled, committed, pushed"
+
+    ORCH -> ORCH : delay: Task.Delay(interval, ct)
+end
+
+ORCH -> LOG : Info "Sync session ended (end time reached)"
+
+@enduml

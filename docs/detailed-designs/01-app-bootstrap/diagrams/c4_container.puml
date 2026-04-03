@@ -1,0 +1,24 @@
+@startuml c4_container
+!theme plain
+!include <C4/C4_Container>
+
+title GitSync — Container Diagram
+
+Person(dev, "Developer / DevOps Engineer", "Invokes the CLI tool")
+
+System_Boundary(sb, "GitSync .NET Global Tool") {
+    Container(cli, "CLI Host", ".NET 8 / System.CommandLine", "Parses arguments, builds the\nDI container, and dispatches\nto the sync command handler")
+    Container(loop, "Sync Loop Engine", ".NET 8 / Microsoft.Extensions.Hosting", "Orchestrates the timed polling loop,\nmanages cancellation, and coordinates\ngit operations each iteration")
+    Container(gitsvc, "Git Operations Service", ".NET 8 / System.Diagnostics.Process", "Executes git subprocesses (pull, status,\nadd, commit, push) with timeout and\ninjection-safe argument passing")
+}
+
+System_Ext(gitexe, "git Executable", "Local git binary on PATH")
+System_Ext(remote, "Remote Repository", "Any git remote (origin)")
+
+Rel(dev, cli, "Invokes with options", "CLI args")
+Rel(cli, loop, "Starts after validation", "Dependency injection")
+Rel(loop, gitsvc, "Calls per iteration", "Interface call")
+Rel(gitsvc, gitexe, "Spawns", "ProcessStartInfo\nArgumentList")
+Rel(gitexe, remote, "pull / push", "HTTPS / SSH")
+
+@enduml

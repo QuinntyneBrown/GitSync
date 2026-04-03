@@ -1,0 +1,53 @@
+@startuml sequence_startup
+!theme plain
+skinparam sequenceMessageAlign center
+
+title GitSync — Application Startup Sequence
+
+actor Developer
+participant "OS / Shell" as OS
+participant "Program" as PROG
+participant "SyncCommand\n(RootCommand)" as CMD
+participant "ServiceCollection\nExtensions" as DI
+participant "IGitService" as GIT
+participant "ISyncLoopOrchestrator" as LOOP
+
+Developer -> OS : gitsync [options]
+OS -> PROG : Main(args)
+PROG -> CMD : new SyncCommand()
+PROG -> CMD : InvokeAsync(args)
+
+CMD -> CMD : Parse options\n(--path, --interval, etc.)
+note right of CMD
+  System.CommandLine validates
+  types and mutual exclusions.
+  Exits with code 1 on error.
+end note
+
+CMD -> CMD : Resolve endTime\n(--end-time OR now+duration\nOR now+8h default)
+
+CMD -> DI : AddGitSyncServices(services, opts)
+DI --> CMD : IServiceProvider (IHost built)
+
+CMD -> GIT : ValidateRepositoryAsync(path)
+alt path does not exist or not a git repo
+    GIT --> CMD : false
+    CMD -> OS : Log error, exit code 1
+else validation passes
+    GIT --> CMD : true
+end
+
+CMD -> GIT : FindGitExecutableAsync()
+alt git not on PATH
+    GIT --> CMD : throw / return null
+    CMD -> OS : Log error, exit code 1
+else git found
+    GIT --> CMD : "/usr/bin/git" (or equivalent)
+end
+
+CMD -> LOOP : RunAsync(cancellationToken)
+LOOP --> CMD : exit code (0 on success)
+CMD --> PROG : exit code
+PROG --> OS : process exit
+
+@enduml

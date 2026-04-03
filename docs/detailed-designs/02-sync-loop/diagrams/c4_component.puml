@@ -1,0 +1,21 @@
+@startuml c4_component
+!theme plain
+!include <C4/C4_Component>
+
+title GitSync Sync Loop — Component Diagram
+
+Container_Boundary(loop, "Sync Loop Engine") {
+    Component(orch, "SyncLoopOrchestrator", "C# class implementing\nISyncLoopOrchestrator", "Owns the main while-loop.\nCalculates end time from SyncOptions.\nCoordinates pull→detect→commit→push\nper iteration. Catches per-iteration\nexceptions without crashing.")
+
+    Component(opts, "SyncOptions", "C# record", "Read-only snapshot of all CLI\noptions. Injected as singleton.\nSources interval, endTime,\nmessageTemplate, gitTimeout.")
+
+    Component(result, "IterationOutcome", "C# enum", "Encodes the outcome of a single\niteration: Success, NoChanges,\nPullFailed, StageFailed,\nCommitFailed, PushFailed, Cancelled.")
+}
+
+Component_Ext(gitsvc, "IGitService", "C# interface", "Abstracts all git operations:\npull, detect, stage, commit, push.")
+
+Rel(orch, opts, "Reads configuration")
+Rel(orch, result, "Produces per-iteration")
+Rel(orch, gitsvc, "Calls pull / detect / stage\n/ commit / push")
+
+@enduml

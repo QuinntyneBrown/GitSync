@@ -1,0 +1,60 @@
+@startuml class_diagram
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+
+title GitSync — Sync Loop Class Model
+
+interface ISyncLoopOrchestrator {
+    +RunAsync(ct: CancellationToken) : Task<int>
+}
+
+class SyncLoopOrchestrator {
+    -_options : SyncOptions
+    -_gitService : IGitService
+    -_logger : ILogger<SyncLoopOrchestrator>
+    +SyncLoopOrchestrator(opts, git, logger)
+    +RunAsync(ct: CancellationToken) : Task<int>
+    -ResolveMessage(template: string) : string
+    -LogIterationSummary(n: int, outcome: IterationOutcome) : void
+}
+
+class SyncOptions <<record>> {
+    +Path : DirectoryInfo
+    +Interval : TimeSpan
+    +EndTime : DateTimeOffset
+    +MessageTemplate : string
+    +LogLevel : LogLevel
+    +GitTimeout : TimeSpan
+}
+
+enum IterationOutcome {
+    Success
+    NoChanges
+    PullFailed
+    StageFailed
+    CommitFailed
+    PushFailed
+    Cancelled
+}
+
+interface IGitService {
+    +PullAsync() : Task<GitCommandResult>
+    +DetectChangesAsync() : Task<bool>
+    +StageAsync() : Task<GitCommandResult>
+    +CommitAsync(message: string) : Task<GitCommandResult>
+    +PushAsync() : Task<GitCommandResult>
+}
+
+SyncLoopOrchestrator ..|> ISyncLoopOrchestrator
+SyncLoopOrchestrator --> SyncOptions : reads
+SyncLoopOrchestrator --> IGitService : calls
+SyncLoopOrchestrator ..> IterationOutcome : produces
+
+note bottom of SyncLoopOrchestrator
+  EndTime = --end-time  OR
+            startTime + --duration  OR
+            startTime + 8 hours (default)
+end note
+
+@enduml

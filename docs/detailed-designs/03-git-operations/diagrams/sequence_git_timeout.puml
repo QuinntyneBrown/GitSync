@@ -1,0 +1,59 @@
+@startuml sequence_git_timeout
+!theme plain
+skinparam sequenceMessageAlign center
+
+title GitSync — Git Command Timeout & Injection Safety
+
+participant "GitService" as GIT
+participant "GitProcess\nRunner" as RUNNER
+participant "git (process)" as GIT_EXE
+
+== Timeout Scenario ==
+
+GIT -> RUNNER : RunAsync(opts)\nTimeout = 30s
+
+RUNNER -> RUNNER : ProcessStartInfo:\n  UseShellExecute = false\n  ArgumentList = args\n  RedirectStdout/Stderr
+
+RUNNER -> GIT_EXE : process.Start()
+
+RUNNER -> RUNNER : var timeoutCts =\n  CancellationTokenSource(timeout)\nvar linkedCt =\n  CancellationTokenSource.CreateLinked\n  (timeoutCts, outerCt)
+
+RUNNER -> RUNNER : Task.WhenAny(\n  process.WaitForExitAsync(linkedCt),\n  timeoutTask)
+
+note over GIT_EXE
+  git hangs (e.g. network stall
+  during push to unreachable remote)
+end note
+
+RUNNER -> RUNNER : timeoutTask fires after 30s
+
+RUNNER -> GIT_EXE : process.Kill(entireProcessTree: true)
+
+RUNNER --> GIT : GitCommandResult\n{ ExitCode=-1, TimedOut=true }
+
+GIT -> GIT : Log Warning\n"git {cmd} timed out after {timeout}"
+GIT --> GIT : return result\n(caller skips remaining steps)
+
+== Injection Safety Scenario ==
+
+GIT -> RUNNER : RunAsync with args:\n  ["commit", "-m",\n   "; rm -rf / #"]
+
+note right of RUNNER
+  ArgumentList is used — each element
+  is passed verbatim as a separate
+  argument. The shell never sees it.
+  UseShellExecute = false ensures
+  cmd.exe / sh is NOT invoked.
+end note
+
+RUNNER -> GIT_EXE : git commit -m "; rm -rf / #"
+note right of GIT_EXE
+  git receives the literal string
+  "; rm -rf / #" as the commit
+  message. No shell command runs.
+end note
+
+GIT_EXE --> RUNNER : exit 0 (commit created)
+RUNNER --> GIT : GitCommandResult { ExitCode=0 }
+
+@enduml

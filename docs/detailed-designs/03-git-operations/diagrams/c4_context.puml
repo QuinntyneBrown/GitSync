@@ -1,0 +1,20 @@
+@startuml c4_context
+!theme plain
+!include <C4/C4_Context>
+
+title GitSync Git Operations — System Context
+
+Person(dev, "Developer / DevOps Engineer", "Indirectly triggers git operations\nby running the GitSync loop")
+
+System(gitsync, "GitSync CLI", "Spawns git subprocesses to\npull, detect changes, stage,\ncommit, and push on each iteration")
+
+System_Ext(gitexe, "git Executable", "Locally installed git binary.\nResolved from PATH at startup.\nAll operations delegated to it.")
+
+System_Ext(remote, "Remote Git Repository", "The configured origin remote.\nReceives pushes; provides pulls.")
+
+Rel(dev, gitsync, "Starts the tool", "CLI invocation")
+Rel(gitsync, gitexe, "Spawns processes\n(UseShellExecute=false\nArgumentList for safety)", "System.Diagnostics.Process")
+Rel(gitexe, remote, "git pull / git push", "HTTPS or SSH")
+Rel(gitexe, gitsync, "Stdout + stderr\n+ exit code", "captured streams")
+
+@enduml

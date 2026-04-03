@@ -1,0 +1,25 @@
+@startuml c4_container
+!theme plain
+!include <C4/C4_Container>
+
+title GitSync Sync Loop — Container Diagram
+
+Person(dev, "Developer / DevOps Engineer", "Starts and cancels the tool")
+
+System_Boundary(sb, "GitSync .NET Global Tool") {
+    Container(cli, "CLI Host", ".NET 8 / System.CommandLine", "Parses --interval, --duration,\n--end-time; builds DI container;\nhands CancellationToken to loop")
+
+    Container(loop, "Sync Loop Engine", ".NET 8 / Task / CancellationToken", "Owns the while-loop, iteration counter,\nend-time check, Task.Delay wait,\nand per-iteration error boundary")
+
+    Container(gitsvc, "Git Operations Service", ".NET 8", "Executes pull, status, add,\ncommit, push on behalf of the loop")
+}
+
+System_Ext(remote, "Remote Git Repository", "origin")
+
+Rel(dev, cli, "Provides options", "CLI args")
+Rel(dev, loop, "Sends Ctrl+C", "OS signal → CancellationToken")
+Rel(cli, loop, "Passes endTime + ct", "DI / direct call")
+Rel(loop, gitsvc, "Calls per iteration", "async interface")
+Rel(gitsvc, remote, "pull / push", "git subprocess")
+
+@enduml

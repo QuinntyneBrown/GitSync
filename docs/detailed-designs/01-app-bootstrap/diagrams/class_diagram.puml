@@ -1,0 +1,63 @@
+@startuml class_diagram
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+
+title GitSync — Bootstrap & CLI Class Model
+
+class Program <<static>> {
+    +{static} Main(args: string[]) : Task<int>
+}
+
+class SyncCommand {
+    -{static} PathOption : Option<DirectoryInfo>
+    -{static} IntervalOption : Option<TimeSpan>
+    -{static} DurationOption : Option<TimeSpan?>
+    -{static} EndTimeOption : Option<DateTimeOffset?>
+    -{static} MessageOption : Option<string>
+    -{static} LogLevelOption : Option<LogLevel>
+    -{static} GitTimeoutOption : Option<TimeSpan>
+    +SyncCommand()
+    -{static} HandleAsync(...) : Task<int>
+}
+
+class SyncOptions <<record>> {
+    +Path : DirectoryInfo
+    +Interval : TimeSpan
+    +EndTime : DateTimeOffset
+    +MessageTemplate : string
+    +LogLevel : LogLevel
+    +GitTimeout : TimeSpan
+}
+
+class ServiceCollectionExtensions <<static>> {
+    +{static} AddGitSyncServices(services: IServiceCollection, opts: SyncOptions) : IServiceCollection
+}
+
+interface ISyncLoopOrchestrator {
+    +RunAsync(ct: CancellationToken) : Task<int>
+}
+
+interface IGitService {
+    +ValidateRepositoryAsync(path: DirectoryInfo) : Task<bool>
+    +PullAsync() : Task<GitCommandResult>
+    +DetectChangesAsync() : Task<bool>
+    +StageAsync() : Task<GitCommandResult>
+    +CommitAsync(message: string) : Task<GitCommandResult>
+    +PushAsync() : Task<GitCommandResult>
+}
+
+SyncCommand --|> RootCommand
+Program ..> SyncCommand : creates
+SyncCommand ..> SyncOptions : creates
+SyncCommand ..> ServiceCollectionExtensions : calls
+ServiceCollectionExtensions ..> ISyncLoopOrchestrator : registers
+ServiceCollectionExtensions ..> IGitService : registers
+
+note right of SyncCommand
+  Command-per-file pattern:
+  one Command subclass
+  per .cs file
+end note
+
+@enduml

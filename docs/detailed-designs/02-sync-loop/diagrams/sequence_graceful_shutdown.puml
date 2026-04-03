@@ -1,0 +1,35 @@
+@startuml sequence_graceful_shutdown
+!theme plain
+skinparam sequenceMessageAlign center
+
+title GitSync — Graceful Shutdown (Ctrl+C)
+
+actor Developer
+participant "OS / Shell" as OS
+participant "System.CommandLine\nCancellationToken" as SCL
+participant "SyncLoop\nOrchestrator" as ORCH
+participant "ILogger" as LOG
+
+Developer -> OS : Ctrl+C
+OS -> SCL : SIGINT / Console.CancelKeyPress
+
+SCL -> ORCH : CancellationToken.Cancel()
+
+alt loop is mid-delay (Task.Delay)
+    ORCH -> ORCH : OperationCanceledException\nfrom Task.Delay
+    ORCH -> LOG : Info "Shutdown requested — stopping loop"
+else loop is mid-iteration (git operation)
+    note over ORCH
+      Git subprocess has its own timeout.
+      CancellationToken propagates to
+      GitProcessRunner; process killed
+      when timeout fires or ct cancelled.
+    end note
+    ORCH -> ORCH : Current iteration completes\nor aborts on cancellation
+    ORCH -> LOG : Info "Shutdown requested — iteration aborted"
+end
+
+ORCH -> LOG : Info "GitSync stopped gracefully"
+ORCH --> OS : returns exit code 0
+
+@enduml

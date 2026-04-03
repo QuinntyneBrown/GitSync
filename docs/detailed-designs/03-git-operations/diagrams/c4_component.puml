@@ -1,0 +1,22 @@
+@startuml c4_component
+!theme plain
+!include <C4/C4_Component>
+
+title GitSync Git Operations — Component Diagram
+
+Container_Boundary(gitsvc, "Git Operations Service") {
+    Component(svc, "GitService", "C# class implementing\nIGitService", "High-level git facade.\nValidates repository at startup.\nResolves git executable path.\nCoordinates pull→status→add\n→commit→push operations.\nInterprets GitCommandResult.")
+
+    Component(runner, "GitProcessRunner", "C# class implementing\nIGitProcessRunner", "Creates ProcessStartInfo with\nUseShellExecute=false and\nArgumentList. Starts process,\ncaptures stdout/stderr,\nenforces timeout, kills on expiry.\nReturns GitCommandResult.")
+
+    Component(cmdresult, "GitCommandResult", "C# record", "Immutable result of one\ngit subprocess call.\nCarries ExitCode, Stdout,\nStderr, TimedOut flag.")
+
+    Component(cmdopts, "GitCommandOptions", "C# record", "Input to GitProcessRunner:\nArguments list, WorkingDirectory,\nTimeout, git executable path.")
+}
+
+Rel(svc, runner, "RunAsync(GitCommandOptions)")
+Rel(runner, cmdopts, "Reads")
+Rel(runner, cmdresult, "Produces")
+Rel(svc, cmdresult, "Inspects ExitCode / Stdout")
+
+@enduml

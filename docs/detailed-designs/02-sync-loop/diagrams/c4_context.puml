@@ -1,0 +1,20 @@
+@startuml c4_context
+!theme plain
+!include <C4/C4_Context>
+
+title GitSync Sync Loop — System Context
+
+Person(dev, "Developer / DevOps Engineer", "Starts GitSync and leaves it\nrunning for a configured duration")
+
+System(gitsync, "GitSync CLI", "Executes a timed polling loop\nthat auto-syncs a git repository\nuntil an end time or Ctrl+C")
+
+System_Ext(clock, "System Clock", "UTC wall-clock time used to\ncalculate end time and loop intervals")
+
+System_Ext(remote, "Remote Git Repository", "Source of truth — changes\nare pulled from and pushed to origin")
+
+Rel(dev, gitsync, "Configures interval & end time", "CLI options")
+Rel(dev, gitsync, "Cancels on demand", "Ctrl+C")
+Rel(gitsync, clock, "Reads UTC now", "DateTimeOffset.UtcNow")
+Rel(gitsync, remote, "Pull & push per iteration", "via git subprocess")
+
+@enduml
